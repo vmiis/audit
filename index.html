@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://ajax.aspnetcdn.com/ajax/jquery/jquery-3.5.1.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.min.js"></script>
+    </head>
+    <body>
+        URL: <input id=url type=text />   Password: <input id=pwd type=password />  <button id=connect style='margin-right:50px' >Connect</button> Filter: <input id=filter type=text />
+        <hr>
+        <div id=msg></div>
+        <script>
+            var socket="";
+            $('#connect').on('click',function(){ 
+                socket = io( $('#url').val() ); 
+                socket.emit('password', $('#pwd').val());
+                socket.on('password', (data) => {
+                    $('#msg').append(data.auth+"<br>")
+                });
+                socket.on('message', (data) => {
+                    var words=$('#filter').val().split(' ');
+                    var ok=1;
+                    for(var i=0;i<words.length;i++){
+                        var w=words[i].trim();
+                        if(w!="" && data.message.indexOf(w)==-1){ ok=0; break; }
+                    }
+                    if(ok==1) $('#msg').append(data.message+"<br>")
+                });
+            })
+        </script>
+
+    </body>
+</html>
