@@ -3,30 +3,121 @@
     <head>
         <script src="https://ajax.aspnetcdn.com/ajax/jquery/jquery-3.5.1.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.min.js"></script>
+        <script src="https://json-viewer.vmiis.com/json-viewer/jquery.json-viewer.js"></script>
+        <link rel="stylesheet" href="https://json-viewer.vmiis.com/json-viewer/jquery.json-viewer.css" />
+        
     </head>
     <body>
-        URL: <input id=url type=text />   Password: <input id=pwd type=password />  <button id=connect style='margin-right:50px' >Connect</button> Filter: <input id=filter type=text />
-        <hr>
-        <div id=msg></div>
+        <div id=layout1>
+            <div id=header>
+                URL: <input id=url type=text />   Password: <input id=pwd type=password />  <button id=connect style='margin-right:50px' >Connect</button> Filter: <input id=filter type=text /><button id=apply style='margin-right:50px' >Apply</button>
+                <hr>
+            </div>
+            <div id=layout2>
+                <div id=nav style='white-space: nowrap;overflow:auto'>
+                </div>
+                <div id=content style='overflow:auto'>
+                    <pre id="json_renderer__ID"></pre>
+                </div>
+            </div>
+        </div>
         <script>
+            var filter="";
+            var I=0;
+            var msgs=[];
+            
             var socket="";
             $('#connect').on('click',function(){ 
                 socket = io( $('#url').val() ); 
                 socket.emit('password', $('#pwd').val());
                 socket.on('password', (data) => {
-                    $('#msg').append(data.auth+"<br>")
+                    $('#nav').prepend("connection: "+data.auth+"<br>")
                 });
-                socket.on('message', (data) => {
-                    var words=$('#filter').val().split(' ');
+
+                socket.on('disconnect', () => {
+                    $('#nav').prepend("connection lost <br>")
+                });
+
+                socket.on('req', (data) => {
+                    try{
+                        data.body=JSON.parse(data.body)
+                    }
+                    catch(e){}
+                    msgs.push({'req':data});
+                    var words=filter.split(' ');
                     var ok=1;
                     for(var i=0;i<words.length;i++){
                         var w=words[i].trim();
-                        if(w!="" && data.message.indexOf(w)==-1){ ok=0; break; }
+                        if(w!="" && data.req.indexOf(w)==-1){ ok=0; break; alert(w); }
                     }
-                    if(ok==1) $('#msg').append(data.message+"<br>")
+                    console.log(data)
+                    if(ok==1){
+                        var link="<span I="+I+" >"+new Date(data.time).toLocaleTimeString()+" "+data.path.replace(/\//g,'&nbsp;&nbsp;')+"</span>";
+                        set_click(link,I);
+                    }
+                    I++
                 });
+                socket.on('res', (data) => {
+                    try{
+                        data.body=JSON.parse(data.body)
+                    }
+                    catch(e){}
+
+                    var a=msgs.find(x => x.req.id===data.id);
+                    if(a!=undefined) a.res=data;
+                });
+                $('#apply').on('click',function(){ 
+                    $('#nav').html('');
+                    filter=$('#filter').val();
+                    var words=filter.split(' ');
+                    for(var i=0;i<msgs.length;i++){
+                        var link="<span I="+i+" >"+new Date(msgs[i].req.time).toLocaleTimeString()+" "+msgs[i].req.path.replace(/\//g,'&nbsp;&nbsp;')+"</span>";
+                        var ok=1;
+                        for(var k=0;k<words.length;k++){
+                            var w=words[k].trim();
+                            if(w!="" && link.indexOf(w)==-1){ ok=0; break; }
+                        }
+                        if(ok==1){
+                            set_click(link,i);
+                        }
+                    }
+                })
+                var set_click=function(link,i){
+                    $('#nav').prepend(link+"<br>")
+                    $('span[i='+i+']').on('click',function(){
+                        var I=$(this).attr('i');
+                        var options = {
+                            collapsed: false,
+                            rootCollapsable: false,
+                        };
+                        $('#json_renderer__ID').jsonViewer(msgs[I], options);
+                    })
+                }
             })
         </script>
-
+        <style>
+            #layout1 {
+                height: 100%;
+                display: grid;
+                grid-template-rows: auto 1fr;
+            }
+            #layout2 {
+                height: 100%;
+                display: grid;
+                grid-template-columns: 500px 1fr ;
+                overflow:auto;
+            }
+            span {
+                cursor:pointer;
+            }
+            #nav{
+                font-size: 13px;
+                font-family: Helvetica, Arial, sans-serif;                
+            }
+            html,body{
+                height:100%;
+                overflow: hidden;
+            }
+        </style>
     </body>
 </html>
