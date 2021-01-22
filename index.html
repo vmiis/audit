@@ -28,7 +28,7 @@
             
             var socket="";
             $('#connect').on('click',function(){ 
-                socket = io( $('#url').val() ); 
+                socket = io( "wss://"+$('#url').val() ); 
                 socket.emit('password', $('#pwd').val());
                 socket.on('password', (data) => {
                     $('#nav').prepend("connection: "+data.auth+"<br>")
