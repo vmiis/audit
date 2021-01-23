@@ -22,20 +22,30 @@
             </div>
         </div>
         <script>
+            var connection_stop=0;
             var filter="";
             var I=0;
             var msgs=[];
             
+            setInterval(function(){
+                if(connection_stop==1){
+                    connect();    
+                }
+            },60*1000)
             var socket="";
-            $('#connect').on('click',function(){ 
-                socket = io( "wss://"+$('#url').val() ); 
+            $('#connect').on('click',function(){ connect(); })
+            
+            var connect=function(){ 
+                socket = io( "wss://"+$('#url').val(),{ reconnection: false} ); 
                 socket.emit('password', $('#pwd').val());
                 socket.on('password', (data) => {
-                    $('#nav').prepend("connection: "+data.auth+"<br>")
+                    $('#nav').prepend("connection: "+data.auth+"<br>");
+                    connection_stop=0;
                 });
 
                 socket.on('disconnect', () => {
-                    $('#nav').prepend("connection lost <br>")
+                    $('#nav').prepend("connection lost <br>");
+                    connection_stop=1;
                 });
 
                 socket.on('req', (data) => {
@@ -93,7 +103,7 @@
                         $('#json_renderer__ID').jsonViewer(msgs[I], options);
                     })
                 }
-            })
+            }
         </script>
         <style>
             #layout1 {
