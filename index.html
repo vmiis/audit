@@ -10,7 +10,7 @@
     <body>
         <div id=layout1>
             <div id=header>
-                URL: <input id=url type=text />   Password: <input id=pwd type=password />  <button id=connect style='margin-right:50px' >Connect</button> Filter: <input id=filter type=text /><button id=apply style='margin-right:50px' >Apply</button>
+                URL: <input id=url type=text />   Password: <input id=pwd type=password />  <button id=connect style='margin-right:50px' >Connect</button> Filter: <input id=filter type=text /><button id=apply style='margin-right:50px' > Apply</button>
                 <hr>
             </div>
             <div id=layout2>
@@ -50,22 +50,34 @@
 
                 socket.on('req', (data) => {
                     try{
-                        data.body=JSON.parse(data.body)
+                        data.body=JSON.parse(data.body);
                     }
                     catch(e){}
-                    msgs.push({'req':data});
-                    var words=filter.split(' ');
-                    var ok=1;
-                    for(var i=0;i<words.length;i++){
-                        var w=words[i].trim();
-                        if(w!="" && data.req.indexOf(w)==-1){ ok=0; break; alert(w); }
+                    try{
+                        ip_location(data.ip,function(c,res){
+                            res=JSON.parse(res);
+                            data.country_name=res.country_name;
+                            data.region=res.region;
+                            data.city=res.city;
+                            data.country_code=res.country_code;
+                            data.org=res.org;
+
+                            msgs.push({'req':data});
+                            var words=filter.split(' ');
+                            var ok=1;
+                            for(var i=0;i<words.length;i++){
+                                var w=words[i].trim();
+                                if(w!="" && data.req.indexOf(w)==-1){ ok=0; break; alert(w); }
+                            }
+                            if(ok==1){
+                                //var link="<span I="+I+" >"+new Date(data.time).toLocaleTimeString()+" "+data.path.replace(/\//g,'&nbsp;&nbsp;')+"</span>";
+                                var link="<span I="+I+" >"+data.country_code+"-"+data.city+" "+data.path.replace(data.ip,'').replace(/\//g,'&nbsp;&nbsp;')+"</span>";
+                                set_click(link,I);
+                            }
+                            I++
+                        })
                     }
-                    console.log(data)
-                    if(ok==1){
-                        var link="<span I="+I+" >"+new Date(data.time).toLocaleTimeString()+" "+data.path.replace(/\//g,'&nbsp;&nbsp;')+"</span>";
-                        set_click(link,I);
-                    }
-                    I++
+                    catch(e){console.log(e)}
                 });
                 socket.on('res', (data) => {
                     try{
@@ -102,6 +114,22 @@
                         };
                         $('#json_renderer__ID').jsonViewer(msgs[I], options);
                     })
+                }
+                var ip_location=function(ip, callback){
+                    var xmlHttp = new XMLHttpRequest();
+                    xmlHttp.onreadystatechange = function () {
+                        if (this.readyState == 4 && this.status == 200) {
+                            callback(200, this.responseText);
+                        }
+                        else if (this.readyState == 4 && this.status == 403) {
+                            callback(403);
+                        }
+                        if (this.status == 404) {
+                            callback(404);
+                        }
+                    }
+                    xmlHttp.open("GET", "https://ipapi.co/"+ip+"/json/", false); // true for asynchronous
+                    xmlHttp.send();
                 }
             }
         </script>
