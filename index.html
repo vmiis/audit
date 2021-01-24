@@ -10,7 +10,11 @@
     <body>
         <div id=layout1>
             <div id=header>
-                URL: <input id=url type=text />   Password: <input id=pwd type=password />  <button id=connect style='margin-right:50px' >Connect</button> Filter: <input id=filter type=text /> <button id=apply style='margin-right:50px' >Apply</button>
+                URL: <input id=url type=text />   Password: <input id=pwd type=password />  <button id=connect style='margin-right:50px' >Connect</button> 
+                Filter: <input id=filter type=text /> <button id=apply style='margin-right:50px' >Apply</button> 
+                <button id=clear style='margin-right:50px' >Clear</button>
+                <button id=save style='margin-right:50px' >Save</button>
+                <button id=load style='margin-right:50px' >Load</button>
                 <hr>
             </div>
             <div id=layout2>
@@ -25,6 +29,7 @@
             var connection_stop=0;
             var filter="";
             var I=0;
+            var ips={}
             var msgs=[];
             
             setInterval(function(){
@@ -34,7 +39,7 @@
             },60*1000)
             var socket="";
             $('#connect').on('click',function(){ connect(); })
-            
+
             var connect=function(){ 
                 socket = io( "wss://"+$('#url').val(),{ reconnection: false} ); 
                 socket.emit('password', $('#pwd').val());
@@ -71,7 +76,7 @@
                             }
                             if(ok==1){
                                 //var link="<span I="+I+" >"+new Date(data.time).toLocaleTimeString()+" "+data.path.replace(/\//g,'&nbsp;&nbsp;')+"</span>";
-                                var link="<span I="+I+" >"+data.country_code+"-"+data.city+" "+data.path.replace(data.ip,'').replace(/\//g,'&nbsp;&nbsp;')+"</span>";
+                                var link="<span I="+I+" >"+data.country_code+"-"+data.city+"-"+data.ip.split('.')[3]+" "+data.path.replace(data.ip,'').replace(/\//g,'&nbsp;&nbsp;')+"</span>";
                                 set_click(link,I);
                             }
                             I++
@@ -88,50 +93,69 @@
                     var a=msgs.find(x => x.req.id===data.id);
                     if(a!=undefined) a.res=data;
                 });
-                $('#apply').on('click',function(){ 
-                    $('#nav').html('');
-                    filter=$('#filter').val();
-                    var words=filter.split(' ');
-                    for(var i=0;i<msgs.length;i++){
-                        var link="<span I="+i+" >"+new Date(msgs[i].req.time).toLocaleTimeString()+" "+msgs[i].req.path.replace(/\//g,'&nbsp;&nbsp;')+"</span>";
-                        var ok=1;
-                        for(var k=0;k<words.length;k++){
-                            var w=words[k].trim();
-                            if(w!="" && link.indexOf(w)==-1){ ok=0; break; }
-                        }
-                        if(ok==1){
-                            set_click(link,i);
-                        }
-                    }
-                })
-                var set_click=function(link,i){
-                    $('#nav').prepend(link+"<br>")
-                    $('span[i='+i+']').on('click',function(){
-                        var I=$(this).attr('i');
-                        var options = {
-                            collapsed: false,
-                            rootCollapsable: false,
-                        };
-                        $('#json_renderer__ID').jsonViewer(msgs[I], options);
-                    })
-                }
-                var ip_location=function(ip, callback){
-                    var xmlHttp = new XMLHttpRequest();
-                    xmlHttp.onreadystatechange = function () {
-                        if (this.readyState == 4 && this.status == 200) {
-                            callback(200, this.responseText);
-                        }
-                        else if (this.readyState == 4 && this.status == 403) {
-                            callback(403);
-                        }
-                        if (this.status == 404) {
-                            callback(404);
-                        }
-                    }
-                    xmlHttp.open("GET", "https://ipapi.co/"+ip+"/json/", false); // true for asynchronous
-                    xmlHttp.send();
-                }
             }
+        
+            $('#clear').on('click',function(){ msgs=[]; $('#nav').html(''); })
+            $('#save').on('click',function(){ 
+                localStorage.setItem('monitor-'+$('#url').val(), JSON.stringify(msgs));
+            })
+            $('#load').on('click',function(){ 
+                $('#nav').html(''); 
+                msgs=localStorage.getItem('monitor-'+$('#url').val());
+                if(msgs==undefined || msgs=='') msgs=[];
+                else msgs=JSON.parse(msgs);
+                $('#apply').triggerHandler('click');
+            })
+            $('#apply').on('click',function(){ 
+                $('#nav').html('');
+                filter=$('#filter').val();
+                var words=filter.split(' ');
+                for(var i=0;i<msgs.length;i++){
+                    //var link="<span I="+i+" >"+new Date(msgs[i].req.time).toLocaleTimeString()+" "+msgs[i].req.path.replace(/\//g,'&nbsp;&nbsp;')+"</span>";
+                    var link="<span I="+i+" >"+msgs[i].req.country_code+"-"+msgs[i].req.city+"-"+msgs[i].req.ip.split('.')[3]+" "+msgs[i].req.path.replace(msgs[i].req.ip,'').replace(/\//g,'&nbsp;&nbsp;')+"</span>";
+                    var ok=1;
+                    for(var k=0;k<words.length;k++){
+                        var w=words[k].trim();
+                        if(w!="" && link.indexOf(w)==-1){ ok=0; break; }
+                    }
+                    if(ok==1){
+                        set_click(link,i);
+                    }
+                }
+            })
+            var set_click=function(link,i){
+                $('#nav').prepend(link+"<br>")
+                $('span[i='+i+']').on('click',function(){
+                    var I=$(this).attr('i');
+                    var options = {
+                        collapsed: false,
+                        rootCollapsable: false,
+                    };
+                    $('#json_renderer__ID').jsonViewer(msgs[I], options);
+                })
+            }
+            var ip_location=function(ip, callback){
+                if(ips[ip]!=undefined){
+                    callback(200, ips[ip]);
+                    return;
+                }
+                var xmlHttp = new XMLHttpRequest();
+                xmlHttp.onreadystatechange = function () {
+                    if (this.readyState == 4 && this.status == 200) {
+                        ips[ip]=this.responseText;
+                        callback(200, this.responseText);
+                    }
+                    else if (this.readyState == 4 && this.status == 403) {
+                        callback(403);
+                    }
+                    if (this.status == 404) {
+                        callback(404);
+                    }
+                }
+                xmlHttp.open("GET", "https://ipapi.co/"+ip+"/json/", false); // true for asynchronous
+                xmlHttp.send();
+            }
+        
         </script>
         <style>
             #layout1 {
