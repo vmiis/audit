@@ -110,6 +110,7 @@
                 $('#nav').html('');
                 filter=$('#filter').val();
                 var words=filter.split(' ');
+                I=0;
                 for(var i=0;i<msgs.length;i++){
                     //var link="<span I="+i+" >"+new Date(msgs[i].req.time).toLocaleTimeString()+" "+msgs[i].req.path.replace(/\//g,'&nbsp;&nbsp;')+"</span>";
                     var link="<span I="+i+" >"+msgs[i].req.country_code+"-"+msgs[i].req.city+"-"+msgs[i].req.ip.split('.')[3]+" "+msgs[i].req.path.replace(msgs[i].req.ip,'').replace(/\//g,'&nbsp;&nbsp;')+"</span>";
@@ -121,6 +122,7 @@
                     if(ok==1){
                         set_click(link,i);
                     }
+                    I++;
                 }
             })
             var set_click=function(link,i){
