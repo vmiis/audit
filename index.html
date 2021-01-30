@@ -76,7 +76,7 @@
                             }
                             if(ok==1){
                                 //var link="<span I="+I+" >"+new Date(data.time).toLocaleTimeString()+" "+data.path.replace(/\//g,'&nbsp;&nbsp;')+"</span>";
-                                var link="<span I="+I+" >"+data.country_code+"-"+data.city+"-"+data.ip.split('.')[3]+" "+data.path.replace(data.ip,'').replace(/\//g,'&nbsp;&nbsp;')+"</span>";
+                                var link="<span I="+I+" >"+data.country_code+"-"+data.city+"-"+data.ip.split('.')[3]+" "+data.path+"</span>";
                                 set_click(link,I);
                             }
                             I++
@@ -113,7 +113,7 @@
                 I=0;
                 for(var i=0;i<msgs.length;i++){
                     //var link="<span I="+i+" >"+new Date(msgs[i].req.time).toLocaleTimeString()+" "+msgs[i].req.path.replace(/\//g,'&nbsp;&nbsp;')+"</span>";
-                    var link="<span I="+i+" >"+msgs[i].req.country_code+"-"+msgs[i].req.city+"-"+msgs[i].req.ip.split('.')[3]+" "+msgs[i].req.path.replace(msgs[i].req.ip,'').replace(/\//g,'&nbsp;&nbsp;')+"</span>";
+                    var link="<span I="+i+" >"+msgs[i].req.country_code+"-"+msgs[i].req.city+"-"+msgs[i].req.ip.split('.')[3]+" "+msgs[i].req.path+"</span>";
                     var ok=1;
                     for(var k=0;k<words.length;k++){
                         var w=words[k].trim();
